@@ -1,0 +1,29 @@
+.Dungeon_Page {
+  border: 2px solid black;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  .Dungeon {
+    border: 2px solid blue;
+    display: flex;
+    flex-direction: column;
+    &__Row {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      //border: 2px solid green;
+    }
+    &__Cell {
+      // border: 2px solid red;
+
+      img {
+        width: 4rem;
+        height: 4rem;
+      }
+      div {
+        width: 4rem;
+        height: 4rem;
+      }
+    }
+  }
+}
