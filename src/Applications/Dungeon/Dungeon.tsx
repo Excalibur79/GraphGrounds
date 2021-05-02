@@ -15,14 +15,20 @@ const Dungeon = (props: any) => {
     shortestPathTimerId,
     setshortestPathTimerId,
   ] = useState<NodeJS.Timeout | null>(null);
+
   const [exploreTimerId, setExploreTimerId] = useState<NodeJS.Timeout | null>(
     null
   );
+  const exploreTimerIdRef = useRef<NodeJS.Timeout | null>(null);
   const [duration, setDuration] = useState<number>(100);
   const [runCount, setRunCount] = useState(1);
   const [m, setM] = useState<number>(0);
   const [n, setN] = useState<number>(0);
   let visited: boolean[][] = [];
+
+  useEffect(() => {
+    exploreTimerIdRef.current = exploreTimerId;
+  }, [exploreTimerId]);
 
   const generateIntialmaze = (rows: number, columns: number): void => {
     let maze: Cell[][] = [];
@@ -38,7 +44,7 @@ const Dungeon = (props: any) => {
       }
       maze.push(data);
     }
-    console.log(maze);
+
     setDungeon(maze);
   };
   const resetVisualization = (): void => {
@@ -77,7 +83,6 @@ const Dungeon = (props: any) => {
     path: any,
     highlightExplore: ICell[][]
   ): void => {
-    console.log('explore neigh called!!');
     let dr = [-1, +1, 0, 0];
     let dc = [0, 0, -1, +1];
     let data: ICell[] = [];
@@ -98,6 +103,7 @@ const Dungeon = (props: any) => {
   };
   const highlightShortestPath = (reached_end: boolean, path: any) => {
     //shortest path
+
     if (reached_end) {
       let filteredCell = path[end[0] + '-' + end[1]];
       let element;
@@ -109,7 +115,7 @@ const Dungeon = (props: any) => {
       setshortestPathTimerId(
         setInterval(() => {
           if (filteredCell.parent == null) {
-            clearInterval(shortestPathTimerId!);
+            if (shortestPathTimerId) clearInterval(shortestPathTimerId);
             sethighlightingShortestPath(false);
           } else {
             sethighlightingShortestPath(true);
@@ -172,7 +178,7 @@ const Dungeon = (props: any) => {
           i++;
         } else {
           highlightShortestPath(reached_end, path);
-          clearInterval(exploreTimerId!);
+          clearInterval(exploreTimerIdRef.current!);
         }
       }, 100)
     );
