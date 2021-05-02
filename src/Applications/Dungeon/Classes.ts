@@ -24,17 +24,17 @@ export class Cell implements ICell {
 }
 
 export interface IQueue {
-  items: number[];
-  enqueue: (item: number) => void;
-  dequeue: () => number | void;
+  items: ICell[];
+  enqueue: (item: ICell) => void;
+  dequeue: () => ICell | void;
   isEmpty: () => boolean;
 }
 export class Queue implements IQueue {
-  items: number[];
+  items: ICell[];
   constructor() {
     this.items = [];
   }
-  enqueue(item: number) {
+  enqueue(item: ICell) {
     this.items.push(item);
   }
   dequeue() {

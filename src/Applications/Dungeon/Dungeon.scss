@@ -15,7 +15,14 @@
     }
     &__Cell {
       // border: 2px solid red;
-
+      cursor: pointer;
+      transition: all 0.3s ease;
+      &:hover {
+        transform: scale(1.06);
+      }
+      &:active {
+        transform: scale(0.9);
+      }
       img {
         width: 4rem;
         height: 4rem;

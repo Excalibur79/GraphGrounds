@@ -5,7 +5,7 @@ import Selector from './pages/Selector/Selector';
 
 function App() {
   return (
-    <div className="App">
+    <div className="App no-select">
       <Switch>
         <Route
           exact
