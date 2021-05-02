@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { clone } from 'ramda';
 import { Cell, ICell, Queue, IQueue } from './Classes';
 import './Dungeon.scss';
@@ -11,13 +11,19 @@ const Dungeon = (props: any) => {
     highlightingShortestPath,
     sethighlightingShortestPath,
   ] = useState<boolean>(false);
-  const [timerId, setTimerId] = useState<number | null>(null);
+  const [
+    shortestPathTimerId,
+    setshortestPathTimerId,
+  ] = useState<NodeJS.Timeout | null>(null);
+  const [exploreTimerId, setExploreTimerId] = useState<NodeJS.Timeout | null>(
+    null
+  );
   const [duration, setDuration] = useState<number>(100);
   const [runCount, setRunCount] = useState(1);
   const [m, setM] = useState<number>(0);
   const [n, setN] = useState<number>(0);
-
   let visited: boolean[][] = [];
+
   const generateIntialmaze = (rows: number, columns: number): void => {
     let maze: Cell[][] = [];
     for (let i = 0; i < rows; i++) {
@@ -36,61 +42,16 @@ const Dungeon = (props: any) => {
     setDungeon(maze);
   };
   const resetVisualization = (): void => {
-    if (!highlightingShortestPath) {
-      let element;
-      for (let i = 0; i < m; i++) {
-        for (let j = 0; j < n; j++) {
-          element = document.getElementById(i + '-' + j);
-          if (element) element.style.backgroundColor = 'white';
-        }
+    if (shortestPathTimerId) clearInterval(shortestPathTimerId);
+    if (exploreTimerId) clearInterval(exploreTimerId);
+    let element;
+    for (let i = 0; i < m; i++) {
+      for (let j = 0; j < n; j++) {
+        element = document.getElementById(i + '-' + j);
+        if (element) element.style.backgroundColor = 'white';
       }
     }
   };
-  // const generateDefaultPath = (rows: number, columns: number) => {
-  //   let maze = clone(dungeon);
-  //   //Intializing visited matrix
-
-  //   //=======================
-  //   //pushing Start indexes
-
-  //   let dr = [-1, +1, 0, 0];
-  //   let dc = [0, 0, -1, +1];
-  //   console.log(maze[0][0]);
-  //   let cell = maze[start[0]][start[1]];
-  //   cell.blocked = false;
-  //   let endReached = false;
-  //   while (!endReached || cell.rIndex === rows - 1) {
-  //     let r = cell.rIndex;
-  //     let c = cell.cIndex;
-  //     for (let i = 0; i < 4; i++) {
-  //       let rr = r + dr[i];
-  //       let cc = c + dc[i];
-  //       if (rr === end[0] && cc === end[1]) {
-  //         endReached = true;
-  //         maze[rr][cc].blocked = false;
-  //       }
-  //     }
-  //     if (!endReached) {
-  //       let valid = false;
-  //       let randomIndex;
-  //       do {
-  //         randomIndex = Math.random() * 4;
-  //         if (
-  //           r + dr[randomIndex] >= 0 &&
-  //           r + dr[randomIndex] < rows &&
-  //           c + dc[randomIndex] >= 0 &&
-  //           c + dc[randomIndex] < columns
-  //         ) {
-  //           valid = true;
-  //         }
-  //       } while (!valid);
-  //       cell = maze[r + dr[randomIndex]][c + dc[randomIndex]];
-  //       cell.blocked = false;
-  //     }
-  //   }
-  //   console.log('new maze with definite path is :', maze);
-  // };
-
   const handleCell = (cell: ICell, rowIndex: number, columnIndex: number) => {
     if (cell.blocked) return <img src={rock} />;
     else if (rowIndex == start[0] && columnIndex == start[1])
@@ -100,14 +61,12 @@ const Dungeon = (props: any) => {
   };
 
   const toggleCellType = (rowIndex: number, columnIndex: number): void => {
-    if (!highlightingShortestPath) {
-      if (rowIndex == start[0] && columnIndex == start[1]) return;
-      if (rowIndex == end[0] && columnIndex == end[1]) return;
-      let maze = clone(dungeon);
-      let Cell = maze[rowIndex][columnIndex];
-      Cell.blocked = !Cell.blocked;
-      setDungeon(maze);
-    }
+    if (rowIndex == start[0] && columnIndex == start[1]) return;
+    if (rowIndex == end[0] && columnIndex == end[1]) return;
+    let maze = clone(dungeon);
+    let Cell = maze[rowIndex][columnIndex];
+    Cell.blocked = !Cell.blocked;
+    setDungeon(maze);
   };
 
   const exploreNeighbours = (
@@ -115,10 +74,13 @@ const Dungeon = (props: any) => {
     cell: ICell,
     visited: boolean[][],
     queue: IQueue,
-    path: any
+    path: any,
+    highlightExplore: ICell[][]
   ): void => {
+    console.log('explore neigh called!!');
     let dr = [-1, +1, 0, 0];
     let dc = [0, 0, -1, +1];
+    let data: ICell[] = [];
     for (let i = 0; i < 4; i++) {
       let rr = cell.rIndex + dr[i];
       let cc = cell.cIndex + dc[i];
@@ -129,8 +91,40 @@ const Dungeon = (props: any) => {
       maze[rr][cc].parent = [cell.rIndex, cell.cIndex];
       queue.enqueue(maze[rr][cc]);
       visited[rr][cc] = true;
-      path[rr.toString() + '-' + cc.toString()] = maze[rr][cc];
+      path[rr + '-' + cc] = maze[rr][cc];
+      data.push(maze[rr][cc]);
     }
+    if (data.length > 0) highlightExplore.push(data);
+  };
+  const highlightShortestPath = (reached_end: boolean, path: any) => {
+    //shortest path
+    if (reached_end) {
+      let filteredCell = path[end[0] + '-' + end[1]];
+      let element;
+      element = document.getElementById(
+        filteredCell.rIndex + '-' + filteredCell.cIndex
+      )!;
+      element.style.backgroundColor = 'green';
+
+      setshortestPathTimerId(
+        setInterval(() => {
+          if (filteredCell.parent == null) {
+            clearInterval(shortestPathTimerId!);
+            sethighlightingShortestPath(false);
+          } else {
+            sethighlightingShortestPath(true);
+            filteredCell =
+              path[filteredCell.parent[0] + '-' + filteredCell.parent[1]];
+            element = document.getElementById(
+              filteredCell.rIndex + '-' + filteredCell.cIndex
+            )!;
+            element.style.backgroundColor = 'green';
+          }
+        }, 200)
+      );
+    }
+
+    //=============
   };
   const shortestPath = (
     maze: ICell[][],
@@ -146,6 +140,7 @@ const Dungeon = (props: any) => {
     let reached_end = false;
     let queue = new Queue();
     let path: any = {};
+    let highlightExplore: ICell[][] = [];
     let cell;
     cell = maze[start[0]][start[1]];
     queue.enqueue(cell);
@@ -157,44 +152,31 @@ const Dungeon = (props: any) => {
         reached_end = true;
         break;
       }
-      exploreNeighbours(maze, cell, visited, queue, path);
+      exploreNeighbours(maze, cell, visited, queue, path, highlightExplore);
     }
-    console.log('reached end : ', reached_end, ' and path is : ', path);
 
-    //shortest path
-    if (reached_end) {
-      let filteredCell = path[end[0] + '-' + end[1]];
-      let element;
-      element = document.getElementById(
-        filteredCell.rIndex + '-' + filteredCell.cIndex
-      )!;
-      element.style.backgroundColor = 'green';
-
-      let id = setInterval(() => {
-        if (filteredCell.parent == null) {
-          clearInterval(id);
-          sethighlightingShortestPath(false);
+    //highlight Explore
+    let i = 0;
+    let element;
+    let particularCell: ICell;
+    setExploreTimerId(
+      setInterval(() => {
+        if (i < highlightExplore.length) {
+          for (let j = 0; j < highlightExplore[i].length; j++) {
+            particularCell = highlightExplore[i][j];
+            element = document.getElementById(
+              particularCell.rIndex + '-' + particularCell.cIndex
+            );
+            if (element) element.style.backgroundColor = 'orange';
+          }
+          i++;
         } else {
-          sethighlightingShortestPath(true);
-          filteredCell =
-            path[filteredCell.parent[0] + '-' + filteredCell.parent[1]];
-          element = document.getElementById(
-            filteredCell.rIndex + '-' + filteredCell.cIndex
-          )!;
-          element.style.backgroundColor = 'green';
+          highlightShortestPath(reached_end, path);
+          clearInterval(exploreTimerId!);
         }
-      }, 0);
-      // while (filteredCell.parent != null) {
-      //   filteredCell =
-      //     path[filteredCell.parent[0] + '-' + filteredCell.parent[1]];
-      //   element = document.getElementById(
-      //     filteredCell.rIndex + '-' + filteredCell.cIndex
-      //   )!;
-      //   element.style.backgroundColor = 'green';
-      // }
-    }
-
-    //=============
+      }, 100)
+    );
+    //=================
   };
 
   useEffect(() => {
