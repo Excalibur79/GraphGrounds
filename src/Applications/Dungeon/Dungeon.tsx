@@ -3,6 +3,9 @@ import { clone } from 'ramda';
 import { Cell, ICell, Queue, IQueue } from './Classes';
 import './Dungeon.scss';
 import rock from '../../assets/images/rock.png';
+import entrance from '../../assets/images/entrance.png';
+import dynamite from '../../assets/images/dynamite.png';
+import reset from '../../assets/icons/reset.png';
 const Dungeon = (props: any) => {
   const [dungeon, setDungeon] = useState<ICell[][]>([]);
   const [start, setStart] = useState<number[]>([0, 0]);
@@ -30,6 +33,17 @@ const Dungeon = (props: any) => {
     exploreTimerIdRef.current = exploreTimerId;
   }, [exploreTimerId]);
 
+  useEffect(() => {
+    if (n > 20) {
+      alert('Values Cannot Be Greater Than 20 !');
+      setN(0);
+    }
+    if (m > 20) {
+      alert('Values Cannot be Greater Than 20 !');
+      setM(0);
+    }
+  }, [n, m]);
+
   const generateIntialmaze = (rows: number, columns: number): void => {
     let maze: Cell[][] = [];
     for (let i = 0; i < rows; i++) {
@@ -39,12 +53,31 @@ const Dungeon = (props: any) => {
           data.push(new Cell(false, null, i, j));
         else if (i === end[0] && j === end[1])
           data.push(new Cell(false, null, i, j));
-        else
-          data.push(new Cell(Math.floor(Math.random() * 3) === 1, null, i, j));
+        else {
+          let random = Math.floor(Math.random() * 3);
+          data.push(
+            new Cell(
+              random === 1,
+              null,
+              i,
+              j,
+              random === 1
+                ? Math.floor(Math.random() * 2) === 1
+                  ? 'rock'
+                  : 'dynamite'
+                : ''
+            )
+          );
+        }
       }
       maze.push(data);
     }
-
+    let element = document.getElementById('Dungeon');
+    if (m > 14 || n > 14) {
+      if (element) element.style.transform = 'translate(-50%,-50%) scale(.6)';
+    } else {
+      if (element) element.style.transform = 'translate(-50%,-50%) scale(1)';
+    }
     setDungeon(maze);
   };
   const resetVisualization = (): void => {
@@ -54,16 +87,34 @@ const Dungeon = (props: any) => {
     for (let i = 0; i < m; i++) {
       for (let j = 0; j < n; j++) {
         element = document.getElementById(i + '-' + j);
-        if (element) element.style.backgroundColor = 'white';
+        if (element) element.style.backgroundColor = '#B9770E';
       }
     }
   };
   const handleCell = (cell: ICell, rowIndex: number, columnIndex: number) => {
-    if (cell.blocked) return <img src={rock} />;
+    if (cell.blocked)
+      return (
+        <img
+          src={cell.image == 'rock' ? rock : dynamite}
+          onClick={() => toggleCellType(rowIndex, columnIndex)}
+        />
+      );
     else if (rowIndex == start[0] && columnIndex == start[1])
-      return <div>S</div>;
-    else if (rowIndex == end[0] && columnIndex == end[1]) return <div>E</div>;
-    else return <div></div>;
+      return (
+        <img
+          src={entrance}
+          onClick={() => toggleCellType(rowIndex, columnIndex)}
+        />
+      );
+    else if (rowIndex == end[0] && columnIndex == end[1])
+      return (
+        <img
+          src={entrance}
+          onClick={() => toggleCellType(rowIndex, columnIndex)}
+        />
+      );
+    else
+      return <div onClick={() => toggleCellType(rowIndex, columnIndex)}></div>;
   };
 
   const toggleCellType = (rowIndex: number, columnIndex: number): void => {
@@ -71,7 +122,9 @@ const Dungeon = (props: any) => {
     if (rowIndex == end[0] && columnIndex == end[1]) return;
     let maze = clone(dungeon);
     let Cell = maze[rowIndex][columnIndex];
+
     Cell.blocked = !Cell.blocked;
+    if (!Cell.image) Cell.image = 'dynamite';
     setDungeon(maze);
   };
 
@@ -109,8 +162,8 @@ const Dungeon = (props: any) => {
       let element;
       element = document.getElementById(
         filteredCell.rIndex + '-' + filteredCell.cIndex
-      )!;
-      element.style.backgroundColor = 'green';
+      );
+      if (element) element.style.backgroundColor = '#F1C40F';
 
       setshortestPathTimerId(
         setInterval(() => {
@@ -123,10 +176,12 @@ const Dungeon = (props: any) => {
               path[filteredCell.parent[0] + '-' + filteredCell.parent[1]];
             element = document.getElementById(
               filteredCell.rIndex + '-' + filteredCell.cIndex
-            )!;
-            element.style.backgroundColor = 'green';
+            );
+            try {
+              if (element !== null) element.style.backgroundColor = '#F1C40F';
+            } catch {}
           }
-        }, 200)
+        }, 100)
       );
     }
 
@@ -173,7 +228,7 @@ const Dungeon = (props: any) => {
             element = document.getElementById(
               particularCell.rIndex + '-' + particularCell.cIndex
             );
-            if (element) element.style.backgroundColor = 'orange';
+            if (element) element.style.backgroundColor = 'rgba(41,45,48,0.3)';
           }
           i++;
         } else {
@@ -186,28 +241,43 @@ const Dungeon = (props: any) => {
   };
 
   useEffect(() => {
-    generateIntialmaze(m, n);
-  }, []);
-  useEffect(() => {
-    if (dungeon.length > 0) {
+    if (dungeon.length > 0 && m > 0 && n > 0) {
       resetVisualization();
       shortestPath(dungeon, start, end, m, n);
     }
   }, [start, end, dungeon]);
 
+  const resetDungeon = () => {
+    let element = document.getElementsByClassName('Reset')[0];
+    element.classList.add('rotate');
+    setTimeout(() => {
+      if (exploreTimerId) clearInterval(exploreTimerId);
+      if (shortestPathTimerId) clearInterval(shortestPathTimerId);
+      element.classList.remove('rotate');
+      setExploreTimerId(null);
+      setshortestPathTimerId(null);
+      setDungeon([]);
+    }, 1000);
+  };
+
   return (
     <div className="Dungeon_Page">
-      <div className="Dungeon absolute-center">
+      <div className="Dungeon absolute-dungeon" id="Dungeon">
         {dungeon.map((rowData, rowIndex) => {
           return (
             <div className="Dungeon__Row">
+              <div className="Dungeon__Row__Row_Index">{rowIndex}</div>
               {rowData.map((cell, columnIndex) => {
                 return (
                   <div
                     className="Dungeon__Cell"
                     id={rowIndex + '-' + columnIndex}
-                    onClick={() => toggleCellType(rowIndex, columnIndex)}
                   >
+                    {rowIndex === 0 && (
+                      <div className="Dungeon__Cell__Column_Index">
+                        {columnIndex}
+                      </div>
+                    )}
                     {handleCell(cell, rowIndex, columnIndex)}
                   </div>
                 );
@@ -216,23 +286,55 @@ const Dungeon = (props: any) => {
           );
         })}
       </div>
-      <div>
-        <input
-          placeholder="M"
-          value={m}
-          onChange={(e) => setM(parseInt(e.target.value) || 0)}
-        />
-        <input
-          placeholder="N"
-          value={n}
-          onChange={(e) => setN(parseInt(e.target.value) || 0)}
-        />
-        {m > 0 && n > 0 && (
-          <button onClick={() => generateIntialmaze(m, n)}>
-            Generate Maze
-          </button>
-        )}
-      </div>
+      {dungeon.length === 0 && (
+        <div className="Config">
+          <div className="M_div">
+            <label htmlFor="m">Number of Rows : </label>
+            <input
+              placeholder="M"
+              value={m}
+              onChange={(e) => setM(parseInt(e.target.value) || 0)}
+              id="m"
+            />
+          </div>
+          <div className="N_div">
+            <label htmlFor="n">Number of Cols : </label>
+            <input
+              placeholder="N"
+              value={n}
+              onChange={(e) => setN(parseInt(e.target.value) || 0)}
+              id="n"
+            />
+          </div>
+          <div className="Start_div">
+            <div className="Start_div__Left">Start</div>
+            <div className="Start_div__Right">
+              <div className="Start_div__Right__Row">
+                <label htmlFor="n">Row : </label>
+                <input
+                  placeholder="N"
+                  value={n}
+                  onChange={(e) => setN(parseInt(e.target.value) || 0)}
+                  id="n"
+                />
+              </div>
+            </div>
+          </div>
+
+          {m > 0 && n > 0 && (
+            <button onClick={() => generateIntialmaze(m, n)}>
+              Generate Maze
+            </button>
+          )}
+        </div>
+      )}
+      {dungeon.length > 0 && (
+        <div className="Reset">
+          <div onClick={resetDungeon}>
+            <img src={reset} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

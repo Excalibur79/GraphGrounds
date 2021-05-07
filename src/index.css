@@ -27,6 +27,11 @@ button {
 }
 @media (max-width: 415px) {
   html {
-    font-size: 7px;
+    font-size: 5px;
+  }
+}
+@media (max-width: 321px) {
+  html {
+    font-size: 4.5px;
   }
 }

@@ -3,23 +3,27 @@ export interface ICell {
   parent: null | Array<number>;
   rIndex: number;
   cIndex: number;
+  image: String;
 }
 export class Cell implements ICell {
   blocked: Boolean;
   parent: null | Array<number>;
   rIndex: number;
   cIndex: number;
+  image: String;
 
   constructor(
     blocked: Boolean = true,
     parent: null | Array<number> = null,
     rIndex: number,
-    cIndex: number
+    cIndex: number,
+    image: String = ''
   ) {
     this.blocked = blocked;
     this.parent = parent;
     this.rIndex = rIndex;
     this.cIndex = cIndex;
+    this.image = image;
   }
 }
 
