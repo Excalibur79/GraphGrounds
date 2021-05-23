@@ -10,18 +10,13 @@ const Dungeon = (props: any) => {
   const [dungeon, setDungeon] = useState<ICell[][]>([]);
   const [start, setStart] = useState<number[]>([0, 0]);
   const [end, setEnd] = useState<number[]>([8, 7]);
-  const [
-    highlightingShortestPath,
-    sethighlightingShortestPath,
-  ] = useState<boolean>(false);
-  const [
-    shortestPathTimerId,
-    setshortestPathTimerId,
-  ] = useState<NodeJS.Timeout | null>(null);
+  const [highlightingShortestPath, sethighlightingShortestPath] =
+    useState<boolean>(false);
+  const [shortestPathTimerId, setshortestPathTimerId] =
+    useState<NodeJS.Timeout | null>(null);
 
-  const [exploreTimerId, setExploreTimerId] = useState<NodeJS.Timeout | null>(
-    null
-  );
+  const [exploreTimerId, setExploreTimerId] =
+    useState<NodeJS.Timeout | null>(null);
   const exploreTimerIdRef = useRef<NodeJS.Timeout | null>(null);
   const [duration, setDuration] = useState<number>(100);
   const [runCount, setRunCount] = useState(1);
